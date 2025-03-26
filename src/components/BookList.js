@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";  
 import "./BookManagement.css";
 
 const BookList = () => {
@@ -25,11 +25,11 @@ const BookList = () => {
   };
 
   const handleEdit = (book) => {
-    navigate("/cataloging/book-management", { state: { book } });
+    navigate("/cataloging/book-management", { state: { book } }); // Ensure book object is passed
   };
 
   const handleAddNew = () => {
-    navigate("/cataloging/book-management", { state: {} });
+    navigate("/cataloging/book-management", { state: {} }); // Pass empty state instead of null
   };
 
   const handleDelete = async (bookId) => {
@@ -48,14 +48,10 @@ const BookList = () => {
   return (
     <div className="book-management-container">
       <h2>Book List</h2>
-      <button onClick={handleAddNew} className="add-btn">
-        Add New Book
-      </button>
+      <button onClick={handleAddNew} className="add-btn">Add New Book</button>
 
       {loading ? (
         <p>Loading books...</p>
-      ) : books.length === 0 ? (
-        <p>No books available.</p>
       ) : (
         <table className="book-table">
           <thead>
@@ -79,15 +75,8 @@ const BookList = () => {
                 <td>{book.available_copies}</td>
                 <td>{book.availability}</td>
                 <td>
-                  <button onClick={() => handleEdit(book)} className="edit-btn">
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(book.id)}
-                    className="delete-btn"
-                  >
-                    Delete
-                  </button>
+                  <button onClick={() => handleEdit(book)} className="edit-btn">Edit</button>
+                  <button onClick={() => handleDelete(book.id)} className="delete-btn">Delete</button>
                 </td>
               </tr>
             ))}

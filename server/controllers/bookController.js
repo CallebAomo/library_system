@@ -3,73 +3,94 @@ const csv = require("csv-parser");
 const fs = require("fs");
 
 // 📌 Add a new book
-exports.addBook = (req, res) => {
-    const { title, author, genre, isbn, language, edition, publisher, publicationYear, callNumber, keywords, description, location, availability, circulationType, coverImage, copies } = req.body;
+exports.addBook = async (req, res) => {
+    try {
+        const { title, author, genre, isbn, language, edition, publisher, publicationYear, callNumber, keywords, description, location, availability, circulationType, coverImage, copies } = req.body;
 
-    const sql = `INSERT INTO books (title, author, genre, isbn, language, edition, publisher, publication_year, call_number, keywords, description, location, availability, circulation_type, cover_image, available_copies) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    const values = [title, author, genre, isbn, language, edition, publisher, publicationYear, callNumber, keywords, description, location, availability, circulationType, coverImage, copies];
+        console.log("📌 Received Data:", req.body);  // Debugging log
 
-    db.query(sql, values, async (err, result) => {
-        if (err) return res.status(500).json({ error: "Database error", details: err });
-
-        const bookId = result.insertId;
-        const copySql = `INSERT INTO book_copies (book_id, copy_number, status) VALUES (?, ?, ?)`;
-
-        try {
-            const copyPromises = [];
-            for (let i = 1; i <= copies; i++) {
-                copyPromises.push(db.promise().query(copySql, [bookId, i, "Available"]));
-            }
-            await Promise.all(copyPromises);
-
-            return res.status(201).json({ message: "Book added successfully", bookId });
-        } catch (copyError) {
-            return res.status(500).json({ error: "Error inserting book copies", details: copyError });
+        // Check if ISBN already exists
+        const [existingBooks] = await db.query("SELECT id FROM books WHERE isbn = ?", [isbn]);
+        if (existingBooks.length > 0) {
+            return res.status(400).json({ error: "A book with this ISBN already exists" });
         }
-    });
+
+        const sql = `INSERT INTO books (title, author, genre, isbn, language, edition, publisher, publication_year, call_number, keywords, description, location, availability, circulation_type, cover_image, available_copies) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const values = [title, author, genre, isbn, language, edition, publisher, publicationYear, callNumber, keywords, description, location, availability, circulationType, coverImage, copies];
+
+        console.log("📌 SQL Query:", sql);  // Debugging log
+        console.log("📌 Values:", values);  // Debugging log
+
+        const [result] = await db.query(sql, values);
+        const bookId = result.insertId;
+
+        console.log("📌 Book added successfully, ID:", bookId);  // Debugging log
+
+        // Insert book copies
+        const copySql = `INSERT INTO book_copies (book_id, copy_number, status) VALUES (?, ?, ?)`;
+        const copyPromises = [];
+        for (let i = 1; i <= copies; i++) {
+            copyPromises.push(db.query(copySql, [bookId, i, "Available"]));
+        }
+        await Promise.all(copyPromises);
+
+        return res.status(201).json({ message: "Book added successfully", bookId });
+    } catch (err) {
+        console.error("❌ Database Error:", err);  // Log error details
+        return res.status(500).json({ error: "Database error", details: err.message });
+    }
 };
 
-
 // 📌 Get all books
-exports.getBooks = (req, res) => {
-    db.query("SELECT * FROM books", (err, results) => {
-        if (err) return res.status(500).json({ error: "Database error", details: err });
+exports.getBooks = async (req, res) => {
+    try {
+        const [results] = await db.query("SELECT * FROM books");
         return res.status(200).json(results);
-    });
+    } catch (err) {
+        return res.status(500).json({ error: "Database error", details: err.message });
+    }
 };
 
 // 📌 Get book by ID
-exports.getBookById = (req, res) => {
-    const bookId = req.params.id;
-    db.query("SELECT * FROM books WHERE id = ?", [bookId], (err, results) => {
-        if (err) return res.status(500).json({ error: "Database error", details: err });
+exports.getBookById = async (req, res) => {
+    try {
+        const bookId = req.params.id;
+        const [results] = await db.query("SELECT * FROM books WHERE id = ?", [bookId]);
+
         if (results.length === 0) return res.status(404).json({ message: "Book not found" });
+
         return res.status(200).json(results[0]);
-    });
+    } catch (err) {
+        return res.status(500).json({ error: "Database error", details: err.message });
+    }
 };
 
 // 📌 Update book details
-exports.updateBook = (req, res) => {
-    const bookId = req.params.id;
-    const { title, author, genre, isbn, language, edition, publisher, publicationYear, callNumber, keywords, description, location, availability, circulationType, coverImage } = req.body;
+exports.updateBook = async (req, res) => {
+    try {
+        const bookId = req.params.id;
+        const { title, author, genre, isbn, language, edition, publisher, publicationYear, callNumber, keywords, description, location, availability, circulationType, coverImage } = req.body;
 
-    const sql = `UPDATE books SET title=?, author=?, genre=?, isbn=?, language=?, edition=?, publisher=?, publication_year=?, call_number=?, keywords=?, description=?, location=?, availability=?, circulation_type=?, cover_image=? WHERE id=?`;
-    const values = [title, author, genre, isbn, language, edition, publisher, publicationYear, callNumber, keywords, description, location, availability, circulationType, coverImage, bookId];
+        const sql = `UPDATE books SET title=?, author=?, genre=?, isbn=?, language=?, edition=?, publisher=?, publication_year=?, call_number=?, keywords=?, description=?, location=?, availability=?, circulation_type=?, cover_image=? WHERE id=?`;
+        const values = [title, author, genre, isbn, language, edition, publisher, publicationYear, callNumber, keywords, description, location, availability, circulationType, coverImage, bookId];
 
-    db.query(sql, values, (err, result) => {
-        if (err) return res.status(500).json({ error: "Database error", details: err });
+        await db.query(sql, values);
         return res.status(200).json({ message: "Book updated successfully" });
-    });
+    } catch (err) {
+        return res.status(500).json({ error: "Database error", details: err.message });
+    }
 };
 
 // 📌 Delete book
-exports.deleteBook = (req, res) => {
-    const bookId = req.params.id;
-    db.query("DELETE FROM books WHERE id = ?", [bookId], (err, result) => {
-        if (err) return res.status(500).json({ error: "Database error", details: err });
+exports.deleteBook = async (req, res) => {
+    try {
+        const bookId = req.params.id;
+        await db.query("DELETE FROM books WHERE id = ?", [bookId]);
         return res.status(200).json({ message: "Book deleted successfully" });
-    });
+    } catch (err) {
+        return res.status(500).json({ error: "Database error", details: err.message });
+    }
 };
 
 // 📌 Bulk Upload Books from CSV
@@ -86,14 +107,16 @@ exports.bulkUpload = (req, res) => {
                 row.title, row.author, row.genre, row.isbn, row.language, row.edition, row.publisher, row.publicationYear, row.callNumber, row.keywords, row.description, row.location, "Available", "Loanable", null
             ]);
         })
-        .on("end", () => {
+        .on("end", async () => {
             const sql = `INSERT INTO books (title, author, genre, isbn, language, edition, publisher, publication_year, call_number, keywords, description, location, availability, circulation_type, cover_image) 
                          VALUES ?`;
 
-            db.query(sql, [books], (err, result) => {
-                if (err) return res.status(500).json({ error: "Database error", details: err });
+            try {
+                await db.query(sql, [books]);
                 fs.unlinkSync(filePath); // Delete file after processing
-                return res.status(201).json({ message: `${result.affectedRows} books added successfully` });
-            });
+                return res.status(201).json({ message: `${books.length} books added successfully` });
+            } catch (err) {
+                return res.status(500).json({ error: "Database error", details: err.message });
+            }
         });
 };

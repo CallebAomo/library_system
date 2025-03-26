@@ -13,7 +13,7 @@ router.post("/register", async (req, res) => {
         }
 
         // Check if student already exists
-        const [existingStudent] = await db.promise().query(
+        const [existingStudent] = await db.query(
             "SELECT id FROM students WHERE reg_number = ? OR email = ?",
             [regNumber, email]
         );
@@ -23,7 +23,7 @@ router.post("/register", async (req, res) => {
         }
 
         // Insert into students table
-        const [result] = await db.promise().query(
+        const [result] = await db.query(
             "INSERT INTO students (reg_number, name, phone, email, department) VALUES (?, ?, ?, ?, ?)",
             [regNumber, name, phone, email, department]
         );
@@ -38,18 +38,19 @@ router.post("/register", async (req, res) => {
         res.status(500).json({ message: "Internal server error." });
     }
 });
+
 // Search for students
 router.get("/search", async (req, res) => {
     try {
         const { query } = req.query;
-        
+
         // Prevent empty queries from triggering a search
         if (!query || query.trim() === "") {
             return res.json([]); // Return an empty array if no query is provided
         }
 
         // Search students by name, registration number, or email
-        const [students] = await db.promise().query(
+        const [students] = await db.query(
             "SELECT * FROM students WHERE reg_number LIKE ? OR name LIKE ? OR email LIKE ?",
             [`%${query}%`, `%${query}%`, `%${query}%`]
         );
@@ -60,4 +61,5 @@ router.get("/search", async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 });
+
 module.exports = router;

@@ -14,20 +14,30 @@ const SuperAdminLogin = () => {
     setError("");
 
     try {
+      console.log("🔹 Sending Login Request...");
       const response = await axios.post("http://localhost:5000/api/auth/super-admin-login", {
         email,
         password,
       });
-
-      if (response.data.token) {
-        localStorage.setItem("superAdminToken", response.data.token);
-        navigate("/"); // Redirect to the Super Admin Dashboard
+    
+      console.log("✅ Response Data:", response.data); // Debug API Response
+    
+      if (response.data.accessToken) {
+        localStorage.setItem("superAdminToken", response.data.accessToken);
+        localStorage.setItem("user_id", response.data.user_id);
+        localStorage.setItem("role", "super_admin");
+    
+        console.log("✅ Token Stored, Redirecting...");
+        navigate("/");
       } else {
+        console.log("🚨 No Token Received", response.data);
         setError("Invalid email or password");
       }
     } catch (error) {
+      console.error("🚨 Login Failed:", error.response?.data || error.message);
       setError(error.response?.data?.message || "Login failed. Check your credentials.");
     }
+    
   };
 
   return (

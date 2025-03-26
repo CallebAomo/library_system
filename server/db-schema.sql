@@ -59,16 +59,25 @@ CREATE TABLE IF NOT EXISTS super_admins (
 -- Borrowed books table (Circulation tracking)
 CREATE TABLE IF NOT EXISTS borrowed_books (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    book_id INT NOT NULL,
-    student_id INT NOT NULL,
+    isbn VARCHAR(50) NOT NULL,
+    reg_number VARCHAR(50) NOT NULL,
     librarian_id INT NOT NULL,
     borrow_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     due_date DATETIME NOT NULL,
+    returned_at DATETIME DEFAULT NULL,
     status ENUM('borrowed', 'returned', 'overdue') DEFAULT 'borrowed',
-    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
-    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-    FOREIGN KEY (librarian_id) REFERENCES users(id) ON DELETE CASCADE
+    fine_amount DECIMAL(10,2) DEFAULT 0.00,
+
+    CONSTRAINT fk_borrowed_books_book FOREIGN KEY (isbn) 
+        REFERENCES books(isbn) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    CONSTRAINT fk_borrowed_books_student FOREIGN KEY (reg_number) 
+        REFERENCES students(reg_number) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    CONSTRAINT fk_borrowed_books_librarian FOREIGN KEY (librarian_id) 
+        REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
 
 -- Fines table for tracking overdue fines
 CREATE TABLE IF NOT EXISTS fines (
@@ -79,5 +88,13 @@ CREATE TABLE IF NOT EXISTS fines (
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 );
 
+
+CREATE TABLE refresh_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES super_admins(id) ON DELETE CASCADE
+);
 
 

@@ -14,13 +14,9 @@ const ProtectedRoute = ({ children }) => {
       }
 
       try {
-        const response = await axios.post(
-          "http://localhost:5000/api/auth/verify-token",
-          {},
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const response = await axios.post("http://localhost:5000/api/auth/verify-token", {}, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (response.data.valid) {
           setIsValid(true);
