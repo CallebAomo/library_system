@@ -42,7 +42,7 @@ const SuperAdminLogin = () => {
 
   return (
     <div className="login-container">
-      <h2>Super Admin Login</h2>
+      <h2>Librarian Login</h2>
       {error && <p className="error-message">{error}</p>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">

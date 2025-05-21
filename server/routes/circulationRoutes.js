@@ -1,22 +1,24 @@
 const express = require("express");
-const { authenticateLibrarianOrSuperAdmin } = require("../middleware/authMiddleware");
+const { authenticateUser } = require("../middleware/authMiddleware"); // Use authenticateUser
 const router = express.Router();
-const db = require("../config/db"); // Ensure this is correctly pointing to your database file
+const db = require("../config/db");
 const { getBorrowedBooks, checkInBook } = require("../controllers/circulationController");
 
-// ✅ Fetch Borrowed Books
-router.get("/borrowed-books", authenticateLibrarianOrSuperAdmin, getBorrowedBooks);
+// Debug the import
+console.log("Imported from circulationController:", { getBorrowedBooks, checkInBook });
 
-// ✅ Check Out a Book (allows both Super Admin and Librarian)
-router.post("/checkout", authenticateLibrarianOrSuperAdmin, async (req, res) => {
+// Fetch Borrowed Books (any authenticated user)
+router.get("/borrowed-books", authenticateUser, getBorrowedBooks);
+
+// Check Out a Book (any authenticated user)
+router.post("/checkout", authenticateUser, async (req, res) => {
     try {
         console.log("🔹 Received Checkout Request:", req.body);
 
         const { isbn, reg_number, due_date } = req.body;
-        const user_id = req.user.id; // Extracted from JWT token
-        const user_role = req.user.role; // Get role from JWT
+        const user_id = req.user.id; // From JWT token
 
-        if (!isbn || !reg_number || !user_id || !due_date) {
+        if (!isbn || !reg_number || !due_date) {
             return res.status(400).json({ message: "All fields are required." });
         }
 
@@ -24,7 +26,6 @@ router.post("/checkout", authenticateLibrarianOrSuperAdmin, async (req, res) => 
 
         // Check if book exists and is available
         const [bookRows] = await db.query("SELECT available_copies FROM books WHERE isbn = ?", [isbn]);
-
         if (!bookRows || bookRows.length === 0 || bookRows[0].available_copies <= 0) {
             return res.status(400).json({ message: "Book is not available." });
         }
@@ -33,22 +34,20 @@ router.post("/checkout", authenticateLibrarianOrSuperAdmin, async (req, res) => 
 
         // Check if student exists
         const [studentRows] = await db.query("SELECT reg_number FROM students WHERE reg_number = ?", [reg_number]);
-
         if (!studentRows || studentRows.length === 0) {
             return res.status(404).json({ message: "Student not found." });
         }
 
         console.log("✅ Student found. Proceeding with checkout...");
 
-        // Set librarian_id or super_admin_id based on role
-        const librarian_id = user_role === "librarian" ? user_id : null;
-        const super_admin_id = user_role === "super_admin" ? user_id : null;
+        // Use user_id as librarian_id (since any authenticated user can check out)
+        const librarian_id = user_id;
 
         // Insert into borrowed_books
         await db.query(
             `INSERT INTO borrowed_books (isbn, reg_number, librarian_id, super_admin_id, due_date, status)
-             VALUES (?, ?, ?, ?, ?, 'borrowed')`,
-            [isbn, reg_number, librarian_id, super_admin_id, due_date]
+             VALUES (?, ?, ?, NULL, ?, 'borrowed')`,
+            [isbn, reg_number, librarian_id, due_date]
         );
 
         // Decrease available copies
@@ -61,7 +60,7 @@ router.post("/checkout", authenticateLibrarianOrSuperAdmin, async (req, res) => 
     }
 });
 
-// ✅ Check-In Route
-router.post("/checkin", authenticateLibrarianOrSuperAdmin, checkInBook);
+// Check-In Route (any authenticated user)
+router.post("/checkin", authenticateUser, checkInBook);
 
 module.exports = router;

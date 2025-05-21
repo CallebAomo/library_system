@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Table, Button } from "react-bootstrap";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const CirculationReports = ({ reportType }) => {
   const [reportData, setReportData] = useState(null);
@@ -14,7 +16,7 @@ const CirculationReports = ({ reportType }) => {
         const response = await axios.get(`http://localhost:5000/api/reports/${reportType}`);
         setReportData(response.data);
       } catch (error) {
-        setError("Failed to load report.");
+        setError("Failed to load report: " + (error.response?.data?.message || error.message));
         console.error("Error fetching report:", error);
       }
       setLoading(false);
@@ -27,13 +29,14 @@ const CirculationReports = ({ reportType }) => {
     try {
       const response = await axios.get(`http://localhost:5000/api/reports/${reportType}`, {
         responseType: "blob",
+        headers: { Accept: "application/pdf" },
       });
 
       if (response.status !== 200) {
         throw new Error("Failed to download report");
       }
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", `${reportType}-report.pdf`);
@@ -46,9 +49,38 @@ const CirculationReports = ({ reportType }) => {
     }
   };
 
+  const renderTable = () => {
+    if (!reportData || reportData.length === 0) {
+      return <p>No data available for this report.</p>;
+    }
+
+    const headers = Object.keys(reportData[0]).map((key) => key.replace(/([A-Z])/g, " $1").toUpperCase());
+
+    return (
+      <Table striped bordered hover responsive>
+        <thead>
+          <tr>
+            {headers.map((header, index) => (
+              <th key={index}>{header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {reportData.map((item, index) => (
+            <tr key={index}>
+              {Object.values(item).map((value, i) => (
+                <td key={i}>{value || "N/A"}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    );
+  };
+
   return (
     <div className="report-container">
-      <div style={{ paddingTop: "80px", paddingLeft: "20px" }}> {/* Added spacing */}
+      <div style={{ paddingTop: "80px", paddingLeft: "20px", paddingRight: "20px" }}>
         <h2 style={{ marginBottom: "20px" }}>
           Report: {reportType.replace("-", " ").toUpperCase()}
         </h2>
@@ -56,27 +88,16 @@ const CirculationReports = ({ reportType }) => {
         {loading && <p>Loading report data...</p>}
         {error && <p style={{ color: "red" }}>{error}</p>}
 
-        {!loading && !error && reportData && (
-          <pre style={{ padding: "10px", background: "#f4f4f4", borderRadius: "5px" }}>
-            {JSON.stringify(reportData, null, 2)}
-          </pre>
-        )}
+        {!loading && !error && renderTable()}
 
         {!loading && !error && (
-          <button
+          <Button
             onClick={handleDownload}
-            style={{
-              marginTop: "20px",
-              padding: "10px 15px",
-              backgroundColor: "#007bff",
-              color: "#fff",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-            }}
+            variant="primary"
+            style={{ marginTop: "20px" }}
           >
-            Download Report
-          </button>
+            Download Report (PDF)
+          </Button>
         )}
       </div>
     </div>

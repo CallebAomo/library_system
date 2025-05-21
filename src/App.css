@@ -116,3 +116,62 @@ Layout */
       height: 60px;
   }
 }
+
+/* App.css */
+.sidebar {
+  overflow-y: auto;
+}
+
+.sidebar-item:hover {
+  background-color: #343a40 !important; /* Darker shade on hover */
+  transition: background-color 0.3s ease;
+}
+
+.custom-btn {
+  transition: all 0.3s ease;
+}
+
+.custom-btn:hover {
+  transform: translateY(-2px); /* Slight lift effect */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow on hover */
+  opacity: 0.9; /* Slight fade */
+}
+
+.logo {
+  border-radius: 50%;
+}
+
+/* App.css */
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+}
+
+.sidebar {
+  overflow-y: auto;
+}
+
+.sidebar-item:hover {
+  background-color: #343a40 !important; /* Darker shade on hover */
+  transition: background-color 0.3s ease;
+}
+
+.custom-btn {
+  transition: all 0.3s ease;
+}
+
+.custom-btn:hover {
+  transform: translateY(-2px); /* Slight lift effect */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow on hover */
+  opacity: 0.9; /* Slight fade */
+}
+
+.logo {
+  border-radius: 50%;
+}

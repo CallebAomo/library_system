@@ -35,7 +35,7 @@ const BookList = () => {
   const handleDelete = async (bookId) => {
     if (window.confirm("Are you sure you want to delete this book?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/books/delete/${bookId}`);
+        await axios.delete(`http://localhost:5000/api/books/${bookId}`);
         alert("Book deleted successfully!");
         fetchBooks();
       } catch (error) {
@@ -44,6 +44,7 @@ const BookList = () => {
       }
     }
   };
+  
 
   return (
     <div className="book-management-container">
@@ -58,7 +59,7 @@ const BookList = () => {
             <tr>
               <th>Title</th>
               <th>Author</th>
-              <th>Genre</th>
+              <th>Category</th>
               <th>ISBN</th>
               <th>Copies</th>
               <th>Availability</th>
@@ -70,7 +71,7 @@ const BookList = () => {
               <tr key={book.id}>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
-                <td>{book.genre}</td>
+                <td>{book.category}</td>
                 <td>{book.isbn}</td>
                 <td>{book.available_copies}</td>
                 <td>{book.availability}</td>

@@ -11,6 +11,15 @@ const RegisterStudent = () => {
   });
   const [message, setMessage] = useState("");  // Success/Error message
 
+  // Updated departments to populate the dropdown
+  const departments = [
+    "Computer Science",
+    "Mathematics",
+    "Physics",
+    "Engineering",
+    "Economics",
+  ];
+
   const handleChange = (e) => {
     setStudent({ ...student, [e.target.name]: e.target.value });
   };
@@ -33,11 +42,49 @@ const RegisterStudent = () => {
       <h2>Register Student</h2>
       {message && <p>{message}</p>}  {/* Display success/error message */}
       <form onSubmit={handleSubmit}>
-        <input type="text" name="regNumber" placeholder="Registration Number" value={student.regNumber} onChange={handleChange} required />
-        <input type="text" name="name" placeholder="Full Name" value={student.name} onChange={handleChange} required />
-        <input type="tel" name="phone" placeholder="Phone Number" value={student.phone} onChange={handleChange} required />
-        <input type="email" name="email" placeholder="Email" value={student.email} onChange={handleChange} required />
-        <input type="text" name="department" placeholder="Department" value={student.department} onChange={handleChange} required />
+        <input
+          type="text"
+          name="regNumber"
+          placeholder="Registration Number"
+          value={student.regNumber}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="text"
+          name="name"
+          placeholder="Full Name"
+          value={student.name}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="tel"
+          name="phone"
+          placeholder="Phone Number"
+          value={student.phone}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={student.email}
+          onChange={handleChange}
+          required
+        />
+        <select
+          name="department"
+          value={student.department}
+          onChange={handleChange}
+          required
+        >
+          <option value="">Select Department</option>
+          {departments.map((dept, index) => (
+            <option key={index} value={dept}>{dept}</option>
+          ))}
+        </select>
         <button type="submit">Register</button>
       </form>
     </div>

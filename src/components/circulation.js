@@ -16,7 +16,7 @@ const circulationModules = [
   { name: "Renew", icon: <FaSync />, path: "/renew" },
   { name: "Search Patrons", icon: <FaUsers />, path: "/search-patron" },
   { name: "Fine Management", icon: <FaMoneyBill />, path: "/fine-management" },
-  { name: "Reservations", icon: <FaCalendarCheck />, path: "/reservations" },
+  
 ];
 
 const circulationReports = [
@@ -31,7 +31,7 @@ const Circulation = () => {
 
   return (
     <div className="circulation-container">
-      <h2 className="circulation-title">Circulation Module</h2>
+      <h2 className="circulation-title">Library Transactions</h2>
       
       {/* Circulation Modules Section */}
       <div className="circulation-grid">
@@ -48,7 +48,7 @@ const Circulation = () => {
       </div>
 
       {/* Reports Section */}
-      <h3 className="circulation-subtitle">Circulation Reports</h3>
+      <h3 className="circulation-subtitle">Library Transactions Reports</h3>
       <div className="circulation-grid">
         {circulationReports.map((report) => (
           <div

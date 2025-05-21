@@ -2,38 +2,26 @@ const express = require("express");
 const router = express.Router();
 const PDFDocument = require("pdfkit");
 const db = require("../config/db");
-const path = require("path"); // For logo file path
+const path = require("path");
 
 // Function to draw a header with logo
 const drawHeader = (doc, title) => {
-    const logoPath = path.join(__dirname, "../public/logo.jpeg"); // Adjust path if needed
-
-    // Add University Logo
+    const logoPath = path.join(__dirname, "../public/logo.jpeg");
     try {
-        doc.image(logoPath, 50, 30, { width: 80, height: 80 }); // Adjust size as needed
+        doc.image(logoPath, 50, 30, { width: 80, height: 80 });
     } catch (error) {
         console.log("Error loading logo:", error);
     }
-
-    // University Name
     doc.fontSize(18).font("Helvetica-Bold").text("UNIVERSITY OF ELDORET", { align: "center" });
-
-    // Address (Optional)
     doc.fontSize(12).font("Helvetica").text("P.O. Box 1125-30100, Eldoret, Kenya", { align: "center" });
-
-    // Add Report Title
     doc.moveDown();
     doc.fontSize(16).font("Helvetica-Bold").text(title, { align: "center" });
-
-    // Draw a Line Below Header
     doc.moveTo(50, 130).lineTo(550, 130).stroke();
 };
 
-// Function to draw a table
+// Function to draw a table in PDF
 const drawTable = (doc, data, startX, startY, columnWidths, rowHeight) => {
     let y = startY;
-
-    // Draw Table Headers
     doc.font("Helvetica-Bold").fontSize(12);
     let x = startX;
     const headers = Object.keys(data[0]);
@@ -43,67 +31,70 @@ const drawTable = (doc, data, startX, startY, columnWidths, rowHeight) => {
         x += columnWidths[i];
     });
 
-    // Draw header line
     doc.moveTo(startX, y).lineTo(startX + columnWidths.reduce((a, b) => a + b, 0), y).stroke();
     y += rowHeight;
 
-    // Draw Data Rows
     doc.font("Helvetica").fontSize(10);
     data.forEach(row => {
         x = startX;
         Object.values(row).forEach((text, i) => {
-            doc.text(String(text), x + 5, y + 5, { width: columnWidths[i], align: "left" });
+            doc.text(String(text || "N/A"), x + 5, y + 5, { width: columnWidths[i], align: "left" });
             x += columnWidths[i];
         });
-
-        // Draw row line
         doc.moveTo(startX, y).lineTo(startX + columnWidths.reduce((a, b) => a + b, 0), y).stroke();
         y += rowHeight;
     });
 
-    // Draw vertical lines
     let currentX = startX;
     for (let i = 0; i <= headers.length; i++) {
         doc.moveTo(currentX, startY).lineTo(currentX, y).stroke();
         currentX += columnWidths[i] || 0;
     }
-
-    // Draw bottom line
     doc.moveTo(startX, y).lineTo(startX + columnWidths.reduce((a, b) => a + b, 0), y).stroke();
 };
 
-// Function to generate reports
-const generateReport = async (res, filename, title, query) => {
+// Function to fetch report data
+const fetchReportData = async (query) => {
+    const [data] = await db.execute(query);
+    return data;
+};
+
+// Function to generate PDF report
+const generatePdfReport = (res, filename, title, data) => {
+    const doc = new PDFDocument({ margin: 50 });
+    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+    res.setHeader("Content-Type", "application/pdf");
+    doc.pipe(res);
+
+    drawHeader(doc, title);
+    const columnWidths = [40, 120, 100, 100, 120];
+    const startX = 50, startY = 150, rowHeight = 30;
+    drawTable(doc, data, startX, startY, columnWidths, rowHeight);
+
+    doc.end();
+};
+
+// Generic report handler
+const handleReportRequest = async (req, res, reportType, query, title, filename) => {
     try {
-        const [data] = await db.execute(query);
+        const data = await fetchReportData(query);
         if (data.length === 0) {
             return res.status(404).json({ message: "No data found for this report." });
         }
 
-        const doc = new PDFDocument({ margin: 50 });
-        res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
-        res.setHeader("Content-Type", "application/pdf");
-        doc.pipe(res);
-
-        // Draw Header
-        drawHeader(doc, title);
-
-        // Define column widths
-        const columnWidths = [40, 120, 100, 100, 120]; // Adjust as needed
-        const startX = 50, startY = 150, rowHeight = 30; // Shift table down to avoid header overlap
-
-        // Draw Table
-        drawTable(doc, data, startX, startY, columnWidths, rowHeight);
-
-        doc.end();
+        if (req.headers.accept === "application/pdf") {
+            generatePdfReport(res, filename, title, data);
+        } else {
+            res.status(200).json(data);
+        }
     } catch (error) {
-        console.error("Error generating report:", error);
+        console.error(`Error generating ${reportType} report:`, error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
 
 // Overdue Books Report
-router.get("/overdue-books", async (req, res) => {
+router.get("/reports/overdue-books", async (req, res) => {
     const query = `
         SELECT b.id AS ID, bk.title AS Title, bk.isbn AS ISBN, 
                DATE_FORMAT(b.due_date, '%Y-%m-%d') AS "Due Date", 
@@ -113,11 +104,11 @@ router.get("/overdue-books", async (req, res) => {
         INNER JOIN students s ON b.reg_number = s.reg_number
         WHERE b.due_date < CURDATE() AND b.status = 'borrowed'
     `;
-    generateReport(res, "overdue_books.pdf", "Overdue Books Report", query);
+    handleReportRequest(req, res, "overdue-books", query, "Overdue Books Report", "overdue_books.pdf");
 });
 
 // Checked-Out Books Report
-router.get("/checked-out-books", async (req, res) => {
+router.get("/reports/checked-out-books", async (req, res) => {
     const query = `
         SELECT b.id AS ID, bk.title AS Title, bk.isbn AS ISBN, 
                DATE_FORMAT(b.due_date, '%Y-%m-%d') AS "Due Date", 
@@ -127,11 +118,11 @@ router.get("/checked-out-books", async (req, res) => {
         INNER JOIN students s ON b.reg_number = s.reg_number
         WHERE b.status = 'borrowed'
     `;
-    generateReport(res, "checked_out_books.pdf", "Checked-Out Books Report", query);
+    handleReportRequest(req, res, "checked-out-books", query, "Checked-Out Books Report", "checked_out_books.pdf");
 });
 
 // Returned Books Report
-router.get("/returned-books", async (req, res) => {
+router.get("/reports/returned-books", async (req, res) => {
     const query = `
         SELECT b.id AS ID, bk.title AS Title, bk.isbn AS ISBN, 
                DATE_FORMAT(b.returned_at, '%Y-%m-%d') AS "Return Date", 
@@ -141,11 +132,11 @@ router.get("/returned-books", async (req, res) => {
         INNER JOIN students s ON b.reg_number = s.reg_number
         WHERE b.status = 'returned'
     `;
-    generateReport(res, "returned_books.pdf", "Returned Books Report", query);
+    handleReportRequest(req, res, "returned-books", query, "Returned Books Report", "returned_books.pdf");
 });
 
 // Fine Collection Report
-router.get("/fine-collection", async (req, res) => {
+router.get("/reports/fine-collection", async (req, res) => {
     const query = `
         SELECT f.id AS ID, s.name AS "Student Name", 
                f.fine_amount AS "Fine Amount", 
@@ -153,7 +144,7 @@ router.get("/fine-collection", async (req, res) => {
         FROM fines f
         INNER JOIN students s ON f.reg_number = s.reg_number
     `;
-    generateReport(res, "fine_collection.pdf", "Fine Collection Report", query);
+    handleReportRequest(req, res, "fine-collection", query, "Fine Collection Report", "fine_collection.pdf");
 });
 
 module.exports = router;
